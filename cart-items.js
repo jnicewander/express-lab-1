@@ -1,11 +1,11 @@
 'use strict';
 const express = require('express');
 const products = express.Router();
-const myProducts = [
+const cart = [
     {
         id: 1,
-        product: 'Fancy Lamp',
-        price: 29.99,
+        product: 'Decorative Lamp',
+        price: 59.99,
         quantity: 2
     },
     {
@@ -16,8 +16,8 @@ const myProducts = [
     },
     {
         id: 3,
-        product: 'Fancy Bed Sheets',
-        price: 99.99,
+        product: 'Ugly Bed Sheets',
+        price: 19.99,
         quantity: 1
     },
     {
@@ -35,8 +35,21 @@ const myProducts = [
 ];
 
 products.get('/', (req, res) => {
+    // maxPrice - if specified, only include products that are at or below this price.
+    let cartWithParams = [];
+    if (req.query.maxPrice) {
+        cartWithParams.push(cart.filter(obj => obj.price <= req.query.maxPrice));
+    }
+    if (req.query.prefix) {
+        for (let obj of cart) {
+            if (obj.product.toLowerCase().includes(req.query.prefix.toLowerCase())) {
+                cartWithParams.push(obj);
+            }
+        }
+    }
     res.status(200);
-})
+    res.json(cartWithParams);
+});
 
 
 
