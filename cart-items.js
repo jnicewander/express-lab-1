@@ -100,7 +100,23 @@ products.post('/', (req, res) => {
 });
 
 products.put('/:id', (req, res) => {
-    
+    if (req.body) {
+        const product = cart.find((obj) => obj.id === parseInt(req.params.id));
+        if (req.body.product) {
+            product = { product: req.body.product }
+        }
+        if (req.body.price) {
+            product = { price: req.body.price }
+        }
+        if (req.body.quantity) {
+            product = { quantity: req.body.quantity }
+        }
+        res.status(200);
+        res.json(product);
+    } else {
+        res.status(404);
+        res.json('There are no products matching the submitted ID.')
+    }
 });
 
 
