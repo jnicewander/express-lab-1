@@ -84,5 +84,24 @@ products.get('/:id', (req, res) => {
     }    
 });
 
+products.post('/', (req, res) => {
+    if (req.body && req.body.product && req.body.price && req.body.quantity) {
+        cart.push({
+            id: cart.length + 1,
+            product: req.body.product,
+            price: req.body.price,
+            quantity: req.body.quantity
+        });
+        res.status(201);
+        res.json(cart[cart.length - 1]);
+    } else {
+        res.json('Incorrect format.')
+    }
+});
+
+products.put('/:id', (req, res) => {
+    
+});
+
 
 module.exports = products;
