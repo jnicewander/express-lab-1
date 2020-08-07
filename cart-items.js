@@ -59,24 +59,30 @@ const cart = [
 ];
 
 products.get('/', (req, res) => {
-    // maxPrice - if specified, only include products that are at or below this price.
-    let cartWithParams = [...cart];
+    let cartCopy = [...cart];
     if (req.query.maxPrice) {
-        cartWithParams = cartWithParams.filter(obj => obj.price <= req.query.maxPrice);
+        cartCopy = cartCopy.filter(obj => obj.price <= req.query.maxPrice);
     }
     if (req.query.prefix) {
-        cartWithParams = cartWithParams.filter(obj => obj.product.toLowerCase().startsWith(req.query.prefix.toLowerCase()));
+        cartCopy = cartCopy.filter(obj => obj.product.toLowerCase().startsWith(req.query.prefix.toLowerCase()));
     }
     if (req.query.pageSize) {
-        cartWithParams = cartWithParams.slice(0, req.query.pageSize);
+        cartCopy = cartCopy.slice(0, req.query.pageSize);
     }
     res.status(200);
-    res.json(cartWithParams);
+    res.json(cartCopy);
 });
 
-
-
-
+products.get('/:id', (req, res) => {
+    const product = cart.find((obj) => obj.id === parseInt(req.params.id));
+    if(product) {
+        res.status(200);
+        res.json(product);
+    } else {
+        res.status(404);
+        res.json('ID Not Found');
+    }    
+});
 
 
 module.exports = products;
