@@ -31,6 +31,30 @@ const cart = [
         product: 'Fancy Desk',
         price: 329.99,
         quantity: 1
+    },
+    {
+        id: 6,
+        product: 'Ugly Lamp Shade',
+        price: 2.99,
+        quantity: 2
+    },
+    {
+        id: 7,
+        product: 'Decorative Shower Head',
+        price: 329.99,
+        quantity: 2
+    },
+    {
+        id: 8,
+        product: 'Fancy Chair',
+        price: 89.99,
+        quantity: 4
+    },
+    {
+        id: 9,
+        product: 'Fancy Curtain',
+        price: 39.99,
+        quantity: 8
     }
 ];
 
@@ -41,14 +65,10 @@ products.get('/', (req, res) => {
         cartWithParams = cartWithParams.filter(obj => obj.price <= req.query.maxPrice);
     }
     if (req.query.prefix) {
-        for (let obj of cartWithParams) {
-            if (obj.product.toLowerCase().includes(req.query.prefix.toLowerCase())) {
-                console.log('Finish this.');
-            }
-        }
+        cartWithParams = cartWithParams.filter(obj => obj.product.toLowerCase().startsWith(req.query.prefix.toLowerCase()));
     }
     if (req.query.pageSize) {
-        console.log('Finish this too.');
+        cartWithParams = cartWithParams.slice(0, req.query.pageSize);
     }
     res.status(200);
     res.json(cartWithParams);
