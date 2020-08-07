@@ -36,16 +36,19 @@ const cart = [
 
 products.get('/', (req, res) => {
     // maxPrice - if specified, only include products that are at or below this price.
-    let cartWithParams = [];
+    let cartWithParams = [...cart];
     if (req.query.maxPrice) {
-        cartWithParams.push(cart.filter(obj => obj.price <= req.query.maxPrice));
+        cartWithParams = cartWithParams.filter(obj => obj.price <= req.query.maxPrice);
     }
     if (req.query.prefix) {
-        for (let obj of cart) {
+        for (let obj of cartWithParams) {
             if (obj.product.toLowerCase().includes(req.query.prefix.toLowerCase())) {
-                cartWithParams.push(obj);
+                console.log('Finish this.');
             }
         }
+    }
+    if (req.query.pageSize) {
+        console.log('Finish this too.');
     }
     res.status(200);
     res.json(cartWithParams);
