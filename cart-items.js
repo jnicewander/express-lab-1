@@ -119,5 +119,12 @@ products.put('/:id', (req, res) => {
     }
 });
 
+products.delete('/:id', (req, res) => {
+    const product = cart.find((obj) => obj.id === parseInt(req.params.id));
+    const index = cart.findIndex(product);
+    cart.splice(index, 1);
+    res.status(200);
+    res.json('Product has been removed from cart.');
+});
 
 module.exports = products;
