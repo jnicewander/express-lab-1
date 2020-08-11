@@ -85,9 +85,10 @@ products.get('/:id', (req, res) => {
 });
 
 products.post('/', (req, res) => {
+    let autoID = cart.length + 1;
     if (req.body && req.body.product && req.body.price && req.body.quantity) {
         cart.push({
-            id: cart.length + 1,
+            id: autoID,
             product: req.body.product,
             price: req.body.price,
             quantity: req.body.quantity
@@ -95,21 +96,21 @@ products.post('/', (req, res) => {
         res.status(201);
         res.json(cart[cart.length - 1]);
     } else {
-        res.json('Incorrect format.')
+        res.json('Incorrect format. Make sure to include "product, price, and quantity" fields.')
     }
 });
 
 products.put('/:id', (req, res) => {
     if (req.body) {
-        const product = cart.find((obj) => obj.id === parseInt(req.params.id));
+        let product = cart.find((obj) => obj.id === parseInt(req.params.id));
         if (req.body.product) {
-            product = { product: req.body.product }
+            product.product = req.body.product 
         }
         if (req.body.price) {
-            product = { price: req.body.price }
+            product.price = req.body.price
         }
         if (req.body.quantity) {
-            product = { quantity: req.body.quantity }
+            product.quantity = req.body.quantity
         }
         res.status(200);
         res.json(product);
@@ -120,9 +121,8 @@ products.put('/:id', (req, res) => {
 });
 
 products.delete('/:id', (req, res) => {
-    const product = cart.find((obj) => obj.id === parseInt(req.params.id));
-    const index = cart.findIndex(product);
-    cart.splice(index, 1);
+    let removeProduct = cart.map(product => { return product.id }).indexOf(parseInt(req.params.id));
+    cart.splice(removeProduct, 1);
     res.status(200);
     res.json('Product has been removed from cart.');
 });
