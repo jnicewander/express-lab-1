@@ -3,34 +3,72 @@ const express = require('express');
 const pool = require("./pg-connection-pool");
 const expressShopDB = express.Router();
 
-function getTable() {
-    let query = 'select * from shopping_cart'
-    console.log(query);
-    return pool.query(query);
-};
+function getTable(filters) {
+    const defaults = {
+        limit: 25,
+        filterType: 'and'
+    }
+    let myFilters = {...defaults, ...filters}
+    let query = 'select * from shopping_cart';
+    let where = [];
+    let params = [];
+
+    if (myFilters.maxPrice) {
+        params.push(myFilters.maxPrice);
+        where.push(`price <= $${params.length}::int`);
+    }
+    if (myFilters.prefix) {
+        params.push(myFilters.prefix);
+        where.push(`product LIKE $${params.length}::text`);
+    }
+    if (myFilters.pageSize) {
+        params.push(myFilters.prefix);
+        where.push(`LIMIT $${params.length}::int`);
+    }
+    if (params.length === 0) {
+        params.push(myFilters.limit);
+        query += ` LIMIT $${params.length}::int`;
+    }
+    if (where.length) {
+        switch(myFilters.filterType.toUpperCase()) {
+            case 'AND':
+                query += ' WHERE ' + where.join(' AND ');
+                break;
+            case 'OR':
+                query += ' WHERE ' + where.join(' OR ');
+                break;
+        }
+    }
+
+    console.log(query, params);
+    return pool.query(query, params);
+}
 
 expressShopDB.get('/', (req, res) => {
-    
-    console.log(req.query)
-    getTable().then(result => {
+    let filter = {};
+    console.log(req.query);
+
+    if (req.query.filterType) {
+        filter.filterType = req.query.filterType;
+    }
+    if (req.query.limit) {
+        filter.limit = req.query.limit;
+    }
+    if (req.query.maxPrice) {
+        filter.maxPrice = req.query.maxPrice;
+    }
+    if (req.query.prefix) {
+        filter.prefix = req.query.prefix + '%';
+    }
+
+    getTable(filter).then(result => {
         let data = result.rows;
         res.json(data);
+        res.sendStatus(200);
     }).catch(err => {
         console.log(err);
         res.sendStatus(500);
-    })
-    
-    // if (req.query.maxPrice) {
-    //     cartCopy = cartCopy.filter(obj => obj.price <= req.query.maxPrice);
-    // }
-    // if (req.query.prefix) {
-    //     cartCopy = cartCopy.filter(obj => obj.product.toLowerCase().startsWith(req.query.prefix.toLowerCase()));
-    // }
-    // if (req.query.pageSize) {
-    //     cartCopy = cartCopy.slice(0, req.query.pageSize);
-    // }
-    // res.status(200);
-    // res.json(cartCopy);
+    });
 });
 
 expressShopDB.get('/:id', (req, res) => {
