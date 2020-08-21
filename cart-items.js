@@ -1,79 +1,39 @@
 'use strict';
 const express = require('express');
-const products = express.Router();
-const cart = [
-    {
-        id: 1,
-        product: 'Decorative Lamp',
-        price: 59.99,
-        quantity: 2
-    },
-    {
-        id: 2,
-        product: 'Decorative Rug',
-        price: 25.99,
-        quantity: 3
-    },
-    {
-        id: 3,
-        product: 'Ugly Bed Sheets',
-        price: 19.99,
-        quantity: 1
-    },
-    {
-        id: 4,
-        product: 'Decorative Spoon',
-        price: 9.99,
-        quantity: 10
-    },
-    {
-        id: 5,
-        product: 'Fancy Desk',
-        price: 329.99,
-        quantity: 1
-    },
-    {
-        id: 6,
-        product: 'Ugly Lamp Shade',
-        price: 2.99,
-        quantity: 2
-    },
-    {
-        id: 7,
-        product: 'Decorative Shower Head',
-        price: 329.99,
-        quantity: 2
-    },
-    {
-        id: 8,
-        product: 'Fancy Chair',
-        price: 89.99,
-        quantity: 4
-    },
-    {
-        id: 9,
-        product: 'Fancy Curtain',
-        price: 39.99,
-        quantity: 8
-    }
-];
+const pool = require("./pg-connection-pool");
+const expressShopDB = express.Router();
 
-products.get('/', (req, res) => {
-    let cartCopy = [...cart];
-    if (req.query.maxPrice) {
-        cartCopy = cartCopy.filter(obj => obj.price <= req.query.maxPrice);
-    }
-    if (req.query.prefix) {
-        cartCopy = cartCopy.filter(obj => obj.product.toLowerCase().startsWith(req.query.prefix.toLowerCase()));
-    }
-    if (req.query.pageSize) {
-        cartCopy = cartCopy.slice(0, req.query.pageSize);
-    }
-    res.status(200);
-    res.json(cartCopy);
+function getTable() {
+    let query = 'select * from shopping_cart'
+    console.log(query);
+    return pool.query(query);
+};
+
+expressShopDB.get('/', (req, res) => {
+    
+    console.log(req.query)
+    getTable().then(result => {
+        let data = result.rows;
+        res.json(data);
+    }).catch(err => {
+        console.log(err);
+        res.sendStatus(500);
+    })
+    
+    // if (req.query.maxPrice) {
+    //     cartCopy = cartCopy.filter(obj => obj.price <= req.query.maxPrice);
+    // }
+    // if (req.query.prefix) {
+    //     cartCopy = cartCopy.filter(obj => obj.product.toLowerCase().startsWith(req.query.prefix.toLowerCase()));
+    // }
+    // if (req.query.pageSize) {
+    //     cartCopy = cartCopy.slice(0, req.query.pageSize);
+    // }
+    // res.status(200);
+    // res.json(cartCopy);
 });
 
-products.get('/:id', (req, res) => {
+expressShopDB.get('/:id', (req, res) => {
     const product = cart.find((obj) => obj.id === parseInt(req.params.id));
     if(product) {
         res.status(200);
@@ -84,7 +44,7 @@ products.get('/:id', (req, res) => {
     }    
 });
 
-products.post('/', (req, res) => {
+expressShopDB.post('/', (req, res) => {
     let autoID = cart.length + 1;
     if (req.body && req.body.product && req.body.price && req.body.quantity) {
         cart.push({
@@ -100,7 +60,7 @@ products.post('/', (req, res) => {
     }
 });
 
-products.put('/:id', (req, res) => {
+expressShopDB.put('/:id', (req, res) => {
     if (req.body) {
         let product = cart.find((obj) => obj.id === parseInt(req.params.id));
         if (req.body.product) {
@@ -116,15 +76,15 @@ products.put('/:id', (req, res) => {
         res.json(product);
     } else {
         res.status(404);
-        res.json('There are no products matching the submitted ID.')
+        res.json('There are no expressShopDB matching the submitted ID.')
     }
 });
 
-products.delete('/:id', (req, res) => {
+expressShopDB.delete('/:id', (req, res) => {
     let removeProduct = cart.map(product => { return product.id }).indexOf(parseInt(req.params.id));
     cart.splice(removeProduct, 1);
     res.status(200);
     res.json('Product has been removed from cart.');
 });
 
-module.exports = products;
+module.exports = expressShopDB;
