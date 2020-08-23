@@ -68,10 +68,10 @@ expressShopDB.get('/', (req, res) => {
     getTable(filter).then(result => {
         let data = result.rows;
         res.json(data);
-        res.status(200);
+        res.sendStatus(200);
     }).catch(err => {
         console.log(err);
-        res.status(500);
+        res.sendStatus(500);
     });
 });
 
@@ -81,25 +81,26 @@ expressShopDB.get('/:id', (req, res) => {
         res.json(data);
     }).catch(err => {
         console.log(err);
-        response.sendStatus(500);
+        res.sendStatus(500);
     });
 });
 
-// expressShopDB.post('/', (req, res) => {
-//     let autoID = cart.length + 1;
-//     if (req.body && req.body.product && req.body.price && req.body.quantity) {
-//         cart.push({
-//             id: autoID,
-//             product: req.body.product,
-//             price: req.body.price,
-//             quantity: req.body.quantity
-//         });
-//         res.status(201);
-//         res.json(cart[cart.length - 1]);
-//     } else {
-//         res.json('Incorrect format. Make sure to include "product, price, and quantity" fields.')
-//     }
-// });
+expressShopDB.post('/', (req, res) => {
+    const query = {
+        name: 'add-product',
+        text: 'INSERT INTO shopping_cart(product, price, quantity) VALUES($1, $2, $3) RETURNING *',
+        values: [req.body.product, req.body.price, req.body.quantity]
+    }
+    pool.query(query).then(result => {
+        let data = result.rows;
+        res.json(data);
+    }).catch(err => {
+        console.log(err);
+        res.sendStatus(500);
+    });
+    console.log('New Product Added: ' + req.body.product + ' $' + req.body.price + ' Qty:' + req.body.quantity);
+        
+});
 
 // expressShopDB.put('/:id', (req, res) => {
 //     if (req.body) {
