@@ -133,18 +133,23 @@ expressShopDB.put('/:id', (req, res) => {
         console.log(err);
         res.sendStatus(500);
     });
-
-
-
-
-   
 });
 
-// expressShopDB.delete('/:id', (req, res) => {
-//     let removeProduct = cart.map(product => { return product.id }).indexOf(parseInt(req.params.id));
-//     cart.splice(removeProduct, 1);
-//     res.status(200);
-//     res.json('Product has been removed from cart.');
-// });
+expressShopDB.delete('/:id', (req, res) => {
+    let query = {
+        name: 'delete-row',
+        text: 'DELETE FROM shopping_cart WHERE id = $1 RETURNING *',
+        values: [req.params.id]
+    };
+
+    pool.query(query).then(result => {
+        let data = result.rows;
+        res.json(data);
+        console.log(data + 'has been deleted');
+    }).catch(err => {
+        console.log(err);
+        res.sendStatus(500);
+    });
+});
 
 module.exports = expressShopDB;
