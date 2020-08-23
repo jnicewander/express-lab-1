@@ -44,13 +44,12 @@ function getTable(filters) {
         }
     }
 
-    console.log(query, params);
+    console.log('Query from getTable: ' + query + ' Params from getTable: '+ params);
     return pool.query(query, params);
 }
 
 expressShopDB.get('/', (req, res) => {
     let filter = {};
-    console.log(req.query);
 
     if (req.query.filterType) {
         filter.filterType = req.query.filterType;
@@ -67,20 +66,19 @@ expressShopDB.get('/', (req, res) => {
 
     getTable(filter).then(result => {
         let data = result.rows;
-        res.json(data);
-        res.sendStatus(200);
+        res.status(200).json(data);
     }).catch(err => {
-        console.log(err);
         res.sendStatus(500);
+        console.log('ERROR: ' + err);
     });
 });
 
 expressShopDB.get('/:id', (req, res) => {
     getTable({ id: req.params.id }).then(result => {
         let data = result.rows;
-        res.json(data);
+        res.status(200).json(data);
     }).catch(err => {
-        console.log(err);
+        console.log('ERROR: ' + err);
         res.sendStatus(500);
     });
 });
@@ -98,29 +96,49 @@ expressShopDB.post('/', (req, res) => {
         console.log(err);
         res.sendStatus(500);
     });
+    console.log(query)
     console.log('New Product Added: ' + req.body.product + ' $' + req.body.price + ' Qty:' + req.body.quantity);
         
 });
 
-// expressShopDB.put('/:id', (req, res) => {
-//     if (req.body) {
-//         let product = cart.find((obj) => obj.id === parseInt(req.params.id));
-//         if (req.body.product) {
-//             product.product = req.body.product 
-//         }
-//         if (req.body.price) {
-//             product.price = req.body.price
-//         }
-//         if (req.body.quantity) {
-//             product.quantity = req.body.quantity
-//         }
-//         res.status(200);
-//         res.json(product);
-//     } else {
-//         res.status(404);
-//         res.json('There are no expressShopDB matching the submitted ID.')
-//     }
-// });
+expressShopDB.put('/:id', (req, res) => {
+    let query = ['UPDATE shopping_cart SET'];
+    let params = [];
+    let set = [];
+    
+    if (req.body) {
+        if (req.body.product) {
+            params.push(req.body.product);
+            set.push(`product = $${params.length}::text`)
+        }
+        if (req.body.price) {
+            params.push(req.body.price);
+            set.push(`price = $${params.length}::int`)
+        }
+        if (req.body.quantity) {
+            params.push(req.body.quantity);
+            set.push(`quantity = $${params.length}::int`)
+        }
+    }
+    query.push(set.join(', '));
+    query.push(`WHERE id = ${parseInt(req.params.id)} RETURNING *`);
+    query = query.join(' ');
+    console.log(query, params);
+
+    pool.query(query, params).then(result => {
+        let data = result.rows;
+        res.json(data);
+        console.log(data + 'has been updated');
+    }).catch(err => {
+        console.log(err);
+        res.sendStatus(500);
+    });
+
+
+
+
+   
+});
 
 // expressShopDB.delete('/:id', (req, res) => {
 //     let removeProduct = cart.map(product => { return product.id }).indexOf(parseInt(req.params.id));
