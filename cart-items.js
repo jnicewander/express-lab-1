@@ -19,10 +19,10 @@ function getTable(filters) {
     }
     if (myFilters.prefix) {
         params.push(myFilters.prefix);
-        where.push(`product LIKE $${params.length}::text`);
+        where.push(`product ILIKE $${params.length}::text`);
     }
     if (myFilters.pageSize) {
-        params.push(myFilters.prefix);
+        params.push(myFilters.pageSize);
         where.push(`LIMIT $${params.length}::int`);
     }
     if (myFilters.id) {
