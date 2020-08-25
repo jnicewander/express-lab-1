@@ -1,130 +1,155 @@
 'use strict';
 const express = require('express');
-const products = express.Router();
-const cart = [
-    {
-        id: 1,
-        product: 'Decorative Lamp',
-        price: 59.99,
-        quantity: 2
-    },
-    {
-        id: 2,
-        product: 'Decorative Rug',
-        price: 25.99,
-        quantity: 3
-    },
-    {
-        id: 3,
-        product: 'Ugly Bed Sheets',
-        price: 19.99,
-        quantity: 1
-    },
-    {
-        id: 4,
-        product: 'Decorative Spoon',
-        price: 9.99,
-        quantity: 10
-    },
-    {
-        id: 5,
-        product: 'Fancy Desk',
-        price: 329.99,
-        quantity: 1
-    },
-    {
-        id: 6,
-        product: 'Ugly Lamp Shade',
-        price: 2.99,
-        quantity: 2
-    },
-    {
-        id: 7,
-        product: 'Decorative Shower Head',
-        price: 329.99,
-        quantity: 2
-    },
-    {
-        id: 8,
-        product: 'Fancy Chair',
-        price: 89.99,
-        quantity: 4
-    },
-    {
-        id: 9,
-        product: 'Fancy Curtain',
-        price: 39.99,
-        quantity: 8
-    }
-];
+const pool = require("./pg-connection-pool");
+const expressShopDB = express.Router();
 
-products.get('/', (req, res) => {
-    let cartCopy = [...cart];
+function getTable(filters) {
+    const defaults = {
+        limit: 25,
+        filterType: 'and'
+    }
+    let myFilters = {...defaults, ...filters}
+    let query = 'select * from shopping_cart';
+    let where = [];
+    let params = [];
+
+    if (myFilters.maxPrice) {
+        params.push(myFilters.maxPrice);
+        where.push(`price <= $${params.length}::int`);
+    }
+    if (myFilters.prefix) {
+        params.push(myFilters.prefix);
+        where.push(`product ILIKE $${params.length}::text`);
+    }
+    if (myFilters.pageSize) {
+        params.push(myFilters.pageSize);
+        where.push(`LIMIT $${params.length}::int`);
+    }
+    if (myFilters.id) {
+        params.push(myFilters.id);
+        where.push(`id = $${params.length}::int`);
+    }
+    if (params.length === 0) {
+        params.push(myFilters.limit);
+        query += ` LIMIT $${params.length}::int`;
+    }
+    if (where.length) {
+        switch(myFilters.filterType.toUpperCase()) {
+            case 'AND':
+                query += ' WHERE ' + where.join(' AND ');
+                break;
+            case 'OR':
+                query += ' WHERE ' + where.join(' OR ');
+                break;
+        }
+    }
+
+    console.log('Query from getTable: ' + query + ' Params from getTable: '+ params);
+    return pool.query(query, params);
+}
+
+expressShopDB.get('/', (req, res) => {
+    let filter = {};
+
+    if (req.query.filterType) {
+        filter.filterType = req.query.filterType;
+    }
+    if (req.query.limit) {
+        filter.limit = req.query.limit;
+    }
     if (req.query.maxPrice) {
-        cartCopy = cartCopy.filter(obj => obj.price <= req.query.maxPrice);
+        filter.maxPrice = req.query.maxPrice;
     }
     if (req.query.prefix) {
-        cartCopy = cartCopy.filter(obj => obj.product.toLowerCase().startsWith(req.query.prefix.toLowerCase()));
+        filter.prefix = req.query.prefix + '%';
     }
-    if (req.query.pageSize) {
-        cartCopy = cartCopy.slice(0, req.query.pageSize);
-    }
-    res.status(200);
-    res.json(cartCopy);
+
+    getTable(filter).then(result => {
+        let data = result.rows;
+        res.status(200).json(data);
+    }).catch(err => {
+        res.sendStatus(500);
+        console.log('ERROR: ' + err);
+    });
 });
 
-products.get('/:id', (req, res) => {
-    const product = cart.find((obj) => obj.id === parseInt(req.params.id));
-    if(product) {
-        res.status(200);
-        res.json(product);
-    } else {
-        res.status(404);
-        res.json('ID Not Found');
-    }    
+expressShopDB.get('/:id', (req, res) => {
+    getTable({ id: req.params.id }).then(result => {
+        let data = result.rows;
+        res.status(200).json(data);
+    }).catch(err => {
+        console.log('ERROR: ' + err);
+        res.sendStatus(500);
+    });
 });
 
-products.post('/', (req, res) => {
-    let autoID = cart.length + 1;
-    if (req.body && req.body.product && req.body.price && req.body.quantity) {
-        cart.push({
-            id: autoID,
-            product: req.body.product,
-            price: req.body.price,
-            quantity: req.body.quantity
-        });
-        res.status(201);
-        res.json(cart[cart.length - 1]);
-    } else {
-        res.json('Incorrect format. Make sure to include "product, price, and quantity" fields.')
+expressShopDB.post('/', (req, res) => {
+    const query = {
+        name: 'add-product',
+        text: 'INSERT INTO shopping_cart(product, price, quantity) VALUES($1, $2, $3) RETURNING *',
+        values: [req.body.product, req.body.price, req.body.quantity]
     }
+    pool.query(query).then(result => {
+        let data = result.rows;
+        res.json(data);
+    }).catch(err => {
+        console.log(err);
+        res.sendStatus(500);
+    });
+    console.log(query)
+    console.log('New Product Added: ' + req.body.product + ' $' + req.body.price + ' Qty:' + req.body.quantity);
+        
 });
 
-products.put('/:id', (req, res) => {
+expressShopDB.put('/:id', (req, res) => {
+    let query = ['UPDATE shopping_cart SET'];
+    let params = [];
+    let set = [];
+    
     if (req.body) {
-        let product = cart.find((obj) => obj.id === parseInt(req.params.id));
         if (req.body.product) {
-            product.product = req.body.product 
+            params.push(req.body.product);
+            set.push(`product = $${params.length}::text`)
         }
         if (req.body.price) {
-            product.price = req.body.price
+            params.push(req.body.price);
+            set.push(`price = $${params.length}::int`)
         }
         if (req.body.quantity) {
-            product.quantity = req.body.quantity
+            params.push(req.body.quantity);
+            set.push(`quantity = $${params.length}::int`)
         }
-        res.status(200);
-        res.json(product);
-    } else {
-        res.status(404);
-        res.json('There are no products matching the submitted ID.')
     }
+    query.push(set.join(', '));
+    query.push(`WHERE id = ${parseInt(req.params.id)} RETURNING *`);
+    query = query.join(' ');
+    console.log(query, params);
+
+    pool.query(query, params).then(result => {
+        let data = result.rows;
+        res.json(data);
+        console.log(data + 'has been updated');
+    }).catch(err => {
+        console.log(err);
+        res.sendStatus(500);
+    });
 });
 
-products.delete('/:id', (req, res) => {
-    let removeProduct = cart.map(product => { return product.id }).indexOf(parseInt(req.params.id));
-    cart.splice(removeProduct, 1);
-    res.status(200);
-    res.json('Product has been removed from cart.');
+expressShopDB.delete('/:id', (req, res) => {
+    let query = {
+        name: 'delete-row',
+        text: 'DELETE FROM shopping_cart WHERE id = $1 RETURNING *',
+        values: [req.params.id]
+    };
+
+    pool.query(query).then(result => {
+        let data = result.rows;
+        res.json(data);
+        console.log(data + 'has been deleted');
+    }).catch(err => {
+        console.log(err);
+        res.sendStatus(500);
+    });
 });
 
-module.exports = products;
+module.exports = expressShopDB;
