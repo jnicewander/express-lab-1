@@ -4,11 +4,7 @@ const pool = require("./pg-connection-pool");
 const expressShopDB = express.Router();
 
 function getTable(filters) {
-    const defaults = {
-        limit: 25,
-        filterType: 'and'
-    }
-    let myFilters = {...defaults, ...filters}
+    let myFilters = {...filters}
     let query = 'select * from shopping_cart';
     let where = [];
     let params = [];
@@ -21,17 +17,9 @@ function getTable(filters) {
         params.push(myFilters.prefix);
         where.push(`product ILIKE $${params.length}::text`);
     }
-    if (myFilters.pageSize) {
-        params.push(myFilters.pageSize);
-        where.push(`LIMIT $${params.length}::int`);
-    }
     if (myFilters.id) {
         params.push(myFilters.id);
         where.push(`id = $${params.length}::int`);
-    }
-    if (params.length === 0) {
-        params.push(myFilters.limit);
-        query += ` LIMIT $${params.length}::int`;
     }
     if (where.length) {
         switch(myFilters.filterType.toUpperCase()) {
@@ -44,18 +32,25 @@ function getTable(filters) {
         }
     }
 
+    query += ` order by id`;
+
+    if (params.length === 0 || myFilters.pageSize) {
+      params.push(myFilters.pageSize);
+      query += ` LIMIT $${params.length}::int`;
+    }
+
     console.log('Query from getTable: ' + query + ' Params from getTable: '+ params);
     return pool.query(query, params);
 }
 
 expressShopDB.get('/', (req, res) => {
-    let filter = {};
+    let filter = { filterType: "and" };
 
     if (req.query.filterType) {
         filter.filterType = req.query.filterType;
     }
-    if (req.query.limit) {
-        filter.limit = req.query.limit;
+    if (req.query.pageSize) {
+        filter.pageSize = req.query.pageSize;
     }
     if (req.query.maxPrice) {
         filter.maxPrice = req.query.maxPrice;
