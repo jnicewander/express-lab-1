@@ -4,7 +4,7 @@ const pool = require("./pg-connection-pool");
 const expressShopDB = express.Router();
 
 function getTable(filters) {
-    let myFilters = {...filters}
+    let myFilters = { filterType: 'and', ...filters}
     let query = 'select * from shopping_cart';
     let where = [];
     let params = [];
@@ -45,7 +45,7 @@ function getTable(filters) {
 
 expressShopDB.get('/', (req, res) => {
     let reqQuery = JSON.parse(JSON.stringify(req.query));
-    let filter = { filterType: "and", ...reqQuery };
+    let filter = { ...reqQuery };
 
     if (filter.prefix) {
         filter.prefix += '%';
