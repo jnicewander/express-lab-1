@@ -44,21 +44,13 @@ function getTable(filters) {
 }
 
 expressShopDB.get('/', (req, res) => {
-    let filter = { filterType: "and" };
+    let reqQuery = JSON.parse(JSON.stringify(req.query));
+    let filter = { filterType: "and", ...reqQuery };
 
-    if (req.query.filterType) {
-        filter.filterType = req.query.filterType;
+    if (filter.prefix) {
+        filter.prefix += '%';
     }
-    if (req.query.pageSize) {
-        filter.pageSize = req.query.pageSize;
-    }
-    if (req.query.maxPrice) {
-        filter.maxPrice = req.query.maxPrice;
-    }
-    if (req.query.prefix) {
-        filter.prefix = req.query.prefix + '%';
-    }
-
+    
     getTable(filter).then(result => {
         let data = result.rows;
         res.status(200).json(data);
@@ -92,7 +84,7 @@ expressShopDB.post('/', (req, res) => {
         res.sendStatus(500);
     });
     console.log(query)
-    console.log('New Product Added: ' + req.body.product + ' $' + req.body.price + ' Qty:' + req.body.quantity);
+    console.log('New Product Added: ' + req.body.product + 'Price(cents)' + req.body.price + ' Qty:' + req.body.quantity);
         
 });
 
