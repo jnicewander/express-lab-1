@@ -92,30 +92,21 @@ expressShopDB.put('/:id', (req, res) => {
     let query = ['UPDATE shopping_cart SET'];
     let params = [];
     let set = [];
-    
-    if (req.body) {
-        if (req.body.product) {
-            params.push(req.body.product);
-            set.push(`product = $${params.length}::text`)
-        }
-        if (req.body.price) {
-            params.push(req.body.price);
-            set.push(`price = $${params.length}::int`)
-        }
-        if (req.body.quantity) {
-            params.push(req.body.quantity);
-            set.push(`quantity = $${params.length}::int`)
-        }
+
+    let propsToUpdate = JSON.parse(JSON.stringify(req.body));
+    for (let property in propsToUpdate) {
+        params.push(propsToUpdate[property]);
+        set.push(`${property} = $${params.length}::${(property === 'product') ? 'text' : 'int'}`);
     }
-    query.push(set.join(', '));
-    query.push(`WHERE id = ${parseInt(req.params.id)} RETURNING *`);
+
+    query.push(set.join(', '), `WHERE id = ${parseInt(req.params.id)} RETURNING *`);
     query = query.join(' ');
     console.log(query, params);
 
     pool.query(query, params).then(result => {
         let data = result.rows;
         res.json(data);
-        console.log(data + 'has been updated');
+        console.log(JSON.stringify(data) + ' has been updated');
     }).catch(err => {
         console.log(err);
         res.sendStatus(500);
